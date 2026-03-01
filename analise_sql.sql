@@ -101,7 +101,7 @@ Ao analisar a consulta, observa-se que esses chamados se referem a trasnportes c
 ou serviços não geolocalizados como "Fiscalização Eletrônica" e "Ouvidoria - CLF".
 */
 
-#Pergunta 6: Quantos chamados de Perturbação do sossego foram abertos nesse período (01/01/2022 a 31/12/2024)?
+#PERGUNTA 6: Quantos chamados de Perturbação do sossego foram abertos nesse período (01/01/2022 a 31/12/2024)?
 --Objetivo da consulta: Filtrar os chamados pelo código do chamado específico com o operador 'BETWEEN'para o período solicitado.
 SELECT 
     COUNT(*) AS total_chamados_sossego
@@ -113,7 +113,7 @@ WHERE
     BETWEEN '2022-01-01' AND '2024-12-31';
 --Resultado: Foram 57.532 chamados do tipo perturbação de sossego (5071) entre 01/01/2022 a 31/12/2024.
 
-#Pergunta 7: Selecione os chamados com esse subtipo que foram abertos durante os eventos contidos na tabela de eventos (Reveillon, Carnaval e Rock in Rio).
+#PERGUNTA 7: Selecione os chamados com esse subtipo que foram abertos durante os eventos contidos na tabela de eventos (Reveillon, Carnaval e Rock in Rio).
 /*Objetivo da consulta: Conectar a tabela de chamados com a de eventos via 'JOIN' 
 para filtrar os chamados de perturbação ao sossego nos eventos solicitados*/
 SELECT
@@ -133,7 +133,7 @@ WHERE
 em que cada linha representa um chamado de 'perturbação do sossego',
 detalhando a data e hora da abertura do chamado e o a qual evento ele está atrelado.*/
 
-#Pergunta 08: Quantos chamados desse subtipo foram abertos em cada evento?.
+#PERGUNTA 08: Quantos chamados desse subtipo foram abertos em cada evento?.
 --Objetivo da consulta: Contar os chamados de perturbação ao sossego abertos no período de cada evento destacado.
 SELECT 
     e.evento,
@@ -156,7 +156,7 @@ necessitando então de um maior incremento a fiscalização desse tipo de chamad
     --2º Carnaval: 255 chamados abertos;
     --3º Réveillon: 152 chamados abertos.
 
-#Pergunta 09: Qual evento teve a maior média diária de chamados abertos desse subtipo?
+#PERGUNTA 09: Qual evento teve a maior média diária de chamados abertos desse subtipo?
 /*Objetivo da consulta: Calcular a média diária de chamados abertos do subtipo requisitado por evento 
 e retornar através do operador LIMIT apenas a maior média encontrada. 
     Inferência prévia: o carnaval apresentará a maior média por se tratar de um evento 
@@ -184,7 +184,7 @@ LIMIT 1;
 /*Resultado: Maior média de reclamações de perturbação ao sossego por evento foi o Rock in Rio (Média de 239,5 chamados por dia). 
 Inferência inicial se mostrou como errada*/
 
-#Pergunta 10: Compare as médias diárias de chamados abertos desse subtipo durante os eventos específicos (Reveillon, Carnaval e Rock in Rio)
+#PERGUNTA 10: Compare as médias diárias de chamados abertos desse subtipo durante os eventos específicos (Reveillon, Carnaval e Rock in Rio)
             # e a média diária de chamados abertos desse subtipo considerando todo o período de 01/01/2022 até 31/12/2024.
 /*Objetivo da consulta: Executar o comando 'WITH' para assim criar duas tabelas temporárias das médias diárias. 
 Uma para 'MediaGeral' e outra para a 'MediaEventos' e após isso relacionar ambas pelo operador 'CROSS JOIN, 
