@@ -1,4 +1,5 @@
 #Arquivo criado para hospedar os códigos e respostas das perguntas 1 a 10 do arquivo "perguntas_sql.md" em Python.
+<<<<<<< HEAD
 #Primeiro passo: importação das bases de dados do GCP.
 import basedosdados as bd
 import pandas as pd
@@ -28,3 +29,5 @@ df_eventos['data_inicial'] = pd.to_datetime(df_eventos['data_inicial']).dt.date
 df_eventos['data_final'] = pd.to_datetime(df_eventos['data_final']).dt.date
 
 print("Bases carregadas")
+=======
+>>>>>>> d99f719c8ad4ebb07c20d1d47fe64f8baae642c3
