@@ -37,6 +37,7 @@ ORDER BY
 #PERGUNTA 3: Quais os nomes dos 3 bairros que mais tiveram chamados abertos nesse dia?
 /*Objetivo da consulta: Relacionar as duas tabelas (atendimento-1746.chamado e dados_mestres.bairro) via JOIN a partir da coluna 'id_bairro' 
   para contabilizar os chamados do dia por bairro (quando informado) e retornar os três bairros com maior número de registros/*
+
 SELECT 
     b.nome AS nome_bairro, 
     COUNT(*) AS quantidade
@@ -231,5 +232,3 @@ Portanto, recomenda-se a ampla divulgação do serviço de fiscalização de per
 Essa divulgação deve ser intensificada em mídias tradicionais, como rádio e TV aberta, e também em canais digitais e redes sociais, incluindo a página oficial da Prefeitura e a republicação por perfis institucionais de grande alcance, como o COR-Rio no Instagram, que possui elevado engajamento e frquente acompanhamento junto à população carioca.
 De forma complementar, recomenda-se a suplementação e maior integração estratégica entre as equipes de fiscalização e as responsáveis pelo tratamento e encaminhamento dos chamados durante esses eventos, com o objetivo de ampliar a eficiência operacional, reduzir o tempo de resposta e qualificar o atendimento à população.
 */
-
-
