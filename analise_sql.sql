@@ -186,49 +186,59 @@ LIMIT 1;
 Inferência inicial se mostrou como errada*/
 
 #PERGUNTA 10: Compare as médias diárias de chamados abertos desse subtipo durante os eventos específicos (Reveillon, Carnaval e Rock in Rio)
-            # e a média diária de chamados abertos desse subtipo considerando todo o período de 01/01/2022 até 31/12/2024.
-/*Objetivo da consulta: Executar o comando 'WITH' para assim criar duas tabelas temporárias das médias diárias. 
-Uma para 'MediaGeral' e outra para a 'MediaEventos' e após isso relacionar ambas pelo operador 'CROSS JOIN, 
-permitindo uma comparação visual direta entre os resultados*/
+/* Objetivo da consulta: 
+Estruturar a análise em 3 etapas lógicas:
+Primeiro, calcular a média diária geral de chamados ao longo dos três anos (2022 a 2024. 
+Em seguida, será isolada cada edição anual dos eventos (ex: Carnaval 2022, Carnaval 2023) para calcular a duração exata em dias e o volume de chamados de cada período. 
+Depois, essas edições são agrupadas  por evento, somando-se todos os chamados e todos os dias de duração para extrair uma média diária única. 
+Por fim, as métricas consolidadas são cruzadas com a média geral.
+*/
+
+--Primeira etapa: cálculo da média diária geral dos 3 anos de reclamações de perturbação do sossego:
 WITH MediaGeral AS (
     SELECT 
-        COUNT(*) / (DATE_DIFF('2024-12-31', '2022-01-01', DAY) + 1) AS media_diaria_geral
+        COUNT(*) / 1096.0 AS media_diaria_geral -- Quantidade de dias entre 01/01/2022 e 31/12/2024: 1096
     FROM `datario.adm_central_atendimento_1746.chamado`
-    WHERE id_subtipo = '5071' #chamado de perturbação ao sossego
+    WHERE id_subtipo = '5071' 
       AND DATE(data_inicio) 
       BETWEEN '2022-01-01' AND '2024-12-31'
 ),
-MediaEventos AS (
+ChamadosPorEdicao AS (
+    -- Segunda etapa: Contar os chamados para cada ano por evento
     SELECT 
         e.evento, 
-        COUNT(*) / (DATE_DIFF(MAX(e.data_final), MAX(e.data_inicial), DAY) + 1) AS media_diaria_evento
-    FROM `datario.adm_central_atendimento_1746.chamado` AS c
-    INNER JOIN `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos` AS e
+        e.data_inicial,
+        e.data_final,
+        COUNT(c.id_chamado) AS total_chamados_edicao,
+        DATE_DIFF(e.data_final, e.data_inicial, DAY) + 1 AS dias_edicao
+    FROM `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos` AS e
+    INNER JOIN `datario.adm_central_atendimento_1746.chamado` AS c
         ON DATE(c.data_inicio) 
         BETWEEN e.data_inicial AND e.data_final
-    WHERE c.id_subtipo = '5071' #chamado de perturbação ao sossego
+    WHERE c.id_subtipo = '5071'
       AND DATE(c.data_inicio) 
       BETWEEN '2022-01-01' AND '2024-12-31'
-    GROUP BY e.evento
+    GROUP BY e.evento, e.data_inicial, e.data_final
+),
+MediaConsolidada AS (
+    -- Terceira etapa: Compila os chamados e os dias de todas as ocorrências dos eventos para gerar média única.
+    SELECT 
+        evento, 
+        SUM(total_chamados_edicao) / SUM(dias_edicao) AS media_diaria_evento
+    FROM ChamadosPorEdicao
+    GROUP BY evento
 )
-SELECT #relacionando as duas tabelas para conseguir responder adequadamente a pergunta.
-    me.evento, 
-    me.media_diaria_evento, 
-    mg.media_diaria_geral 
-FROM 
-    MediaEventos AS me
-CROSS JOIN 
-    MediaGeral AS mg;
-/*Resultado: A consulta indicou uma tabela com 3 linhas, uma linha apra cada evento,
-evidenciando que a média diária de reclamações de perturbação ao sossego foi de 52,49 chamados por dia ao longo desses 3 anos.
-Os eventos com maior média diária de reclamações superaram em muito a média diária durante do período analisado. 
-
-O Rock in Rio registrou uma média de 239,6 (quase 5x maior que a média diária para esse subtipo de chamado para o período observado).
-O Carnval registrou uma média de (63.75, um pouco maior que a média diária calculada ao longo de 3 anos inteiros).
-Com isso, observamos que o potencial que ambos eventos (Rock in Rio e Carnaval) tem de impactar negativamente a vida dos cidadãos cariocas.
-Além disso, o Réveillon, com uma média de 50,66 chamados, foi o unico com uma média diária de chamados um pouco abaixo da média diária global do período, mesmo que ainda seja considerada uma média alta. 
-
-Portanto, recomenda-se a ampla divulgação do serviço de fiscalização de perturbação do sossego, por meio da Central de Atendimento 1746, antes e durante esses eventos, especialmente no Carnaval e no Rock in Rio.
-Essa divulgação deve ser intensificada em mídias tradicionais, como rádio e TV aberta, e também em canais digitais e redes sociais, incluindo a página oficial da Prefeitura e a republicação por perfis institucionais de grande alcance, como o COR-Rio no Instagram, que possui elevado engajamento e frquente acompanhamento junto à população carioca.
-De forma complementar, recomenda-se a suplementação e maior integração estratégica entre as equipes de fiscalização e as responsáveis pelo tratamento e encaminhamento dos chamados durante esses eventos, com o objetivo de ampliar a eficiência operacional, reduzir o tempo de resposta e qualificar o atendimento à população.
-*/
+SELECT 
+    mc.evento, 
+    ROUND(mc.media_diaria_evento, 2) AS media_diaria_evento, 
+    ROUND(mg.media_diaria_geral, 2) AS media_diaria_geral
+FROM MediaConsolidada AS mc
+CROSS JOIN MediaGeral AS mg
+ORDER BY mc.media_diaria_evento DESC;
+/* Resultado: A consulta indicou uma tabela com 3 linhas, uma linha para cada evento, evidenciando que a média diária geral de reclamações de perturbação ao sossego foi de 52,49 chamados por dia ao longo desses 3 anos. 
+Os eventos com maior média diária de reclamações superaram a média diária do período analisado. O Rock in Rio registrou uma média de 136,86 chamados por dia (mais de 2,5 vezes a média diária geral para esse subtipo de chamado no período observado). 
+O Carnaval registrou uma média de 63,75 chamados por dia, valor acima da média diária calculada ao longo dos 3 anos. Com isso, observamos o potencial que ambos os eventos (Rock in Rio e Carnaval) têm de impactar negativamente a vida dos cidadãos cariocas. 
+Além disso, o Réveillon, com uma média de 50,67 chamados por dia, foi o único com média diária ligeiramente abaixo da média global do período (52,49), ainda que permaneça em patamar elevado. 
+Portanto, recomenda-se a ampla divulgação do serviço de fiscalização de perturbação do sossego, por meio da Central de Atendimento 1746, antes e durante esses eventos, especialmente no Carnaval e no Rock in Rio. 
+Essa divulgação deve ser intensificada em mídias tradicionais, como rádio e TV aberta, e também em canais digitais e redes sociais, incluindo a página oficial da Prefeitura e a republicação por perfis institucionais de grande alcance, como o COR-Rio no Instagram, que possui elevado engajamento e frequente acompanhamento junto à população carioca. 
+De forma complementar, recomenda-se a suplementação e maior integração estratégica entre as equipes de fiscalização e as responsáveis pelo tratamento e encaminhamento dos chamados durante esses eventos, com o objetivo de ampliar a eficiência operacional, reduzir o tempo de resposta e qualificar o atendimento à população. */
