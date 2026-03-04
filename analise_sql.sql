@@ -115,8 +115,22 @@ WHERE
 --Resultado: Foram 57.532 chamados do tipo perturbação de sossego (5071) entre 01/01/2022 a 31/12/2024.
 
 #PERGUNTA 7: Selecione os chamados com esse subtipo que foram abertos durante os eventos contidos na tabela de eventos (Reveillon, Carnaval e Rock in Rio).
-/*Objetivo da consulta: Conectar a tabela de chamados com a de eventos via 'JOIN' 
+/*Objetivo da consulta: Conectar a tabela de chamados com a de eventos tratada via 'JOIN' 
 para filtrar os chamados de perturbação ao sossego nos eventos solicitados*/
+WITH EventosTratados AS ( --Constrói uma CTE para corrigir dados despadronizado da tabela 'datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos'
+        evento,
+        CAST(data_inicial AS DATE) AS data_inicial,
+        CAST(data_final AS DATE) AS data_final
+    FROM `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos`
+    WHERE data_inicial IS NOT NULL AND data_final IS NOT NULL
+    UNION ALL
+    SELECT 'Rock in Rio', DATE('2024-09-13'), DATE('2024-09-15')
+    UNION ALL
+    SELECT 'Rock in Rio', DATE('2024-09-19'), DATE('2024-09-22')
+    UNION ALL
+    -- #INSERE MANUALMENTE O PERÍODO DO RÉVEILLON 2024/2025
+    SELECT 'Reveillon', DATE('2024-12-29'), DATE('2025-01-01')
+)
 SELECT
     c.id_chamado,
     c.data_inicio,
@@ -124,25 +138,36 @@ SELECT
 FROM 
     `datario.adm_central_atendimento_1746.chamado` AS c
 INNER JOIN 
-    `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos` AS e
+    EventosTratados AS e
     ON DATE(c.data_inicio) 
     BETWEEN e.data_inicial AND e.data_final
 WHERE 
     c.id_subtipo = '5071'#chamado de perturbação ao sossego
     AND DATE(c.data_inicio) BETWEEN '2022-01-01' AND '2024-12-31';
-/*Resultado: A consulta teve como resultado uma tabela com 1.365 linhas, 
+/*Resultado: A consulta teve como resultado uma tabela com 1.511 linhas, 
 em que cada linha representa um chamado de 'perturbação do sossego',
 detalhando a data e hora da abertura do chamado e o a qual evento ele está atrelado.*/
 
 #PERGUNTA 08: Quantos chamados desse subtipo foram abertos em cada evento?.
 --Objetivo da consulta: Contar os chamados de perturbação ao sossego abertos no período de cada evento destacado.
+WITH EventosTratados AS ( --Constrói uma CTE para corrigir dados despadronizado da tabela 'datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos'
+    SELECT evento, CAST(data_inicial AS DATE) AS data_inicial, CAST(data_final AS DATE) AS data_final
+    FROM `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos`
+    WHERE data_inicial IS NOT NULL AND data_final IS NOT NULL
+    UNION ALL
+    SELECT 'Rock in Rio', DATE('2024-09-13'), DATE('2024-09-15')
+    UNION ALL
+    SELECT 'Rock in Rio', DATE('2024-09-19'), DATE('2024-09-22')
+    UNION ALL
+    SELECT 'Réveillon', DATE('2024-12-29'), DATE('2025-01-01')
+)
 SELECT 
     e.evento,
     COUNT(*) AS total_chamados
 FROM 
     `datario.adm_central_atendimento_1746.chamado` AS c
 INNER JOIN 
-    `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos` AS e
+    EventosTratados AS e
     ON DATE(c.data_inicio) 
     BETWEEN e.data_inicial AND e.data_final
 WHERE 
@@ -151,17 +176,28 @@ WHERE
     BETWEEN '2022-01-01' AND '2024-12-31'
 GROUP BY 
     e.evento;
-/*Resultado: O Rock in Rio é o evento que mais distoa dos demais com reclamações de perrturbação do sossego, 
+/*Resultado: O Rock in Rio é o evento que mais distoa dos demais com reclamações de perturbação do sossego, 
 necessitando então de um maior incremento a fiscalização desse tipo de chamado nas datas desse evento*/
     --1º Rock in Rio: 958 chamados abertos;
     --2º Carnaval: 255 chamados abertos;
-    --3º Réveillon: 152 chamados abertos.
+    --3º Réveillon: 298 chamados abertos.
 
 #PERGUNTA 09: Qual evento teve a maior média diária de chamados abertos desse subtipo?
 /*Objetivo da consulta: Calcular a média diária de chamados abertos do subtipo requisitado por evento 
 e retornar através do operador LIMIT apenas a maior média encontrada. 
     Inferência prévia: o carnaval apresentará a maior média por se tratar de um evento 
     com vários dias de festas espalhadas em vários polos da cidade*/
+WITH EventosTratados AS (--Constrói uma CTE para corrigir dados despadonizado da tabela 'datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos'
+    SELECT evento, CAST(data_inicial AS DATE) AS data_inicial, CAST(data_final AS DATE) AS data_final
+    FROM `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos`
+    WHERE data_inicial IS NOT NULL AND data_final IS NOT NULL
+    UNION ALL
+    SELECT 'Rock in Rio', DATE('2024-09-13'), DATE('2024-09-15')
+    UNION ALL
+    SELECT 'Rock in Rio', DATE('2024-09-19'), DATE('2024-09-22')
+    UNION ALL
+    SELECT 'Reveillon', DATE('2024-12-29'), DATE('2025-01-01')
+)
 SELECT 
     e.evento,
     COUNT(*) AS total_chamados,
@@ -170,7 +206,7 @@ SELECT
 FROM 
     `datario.adm_central_atendimento_1746.chamado` AS c
 INNER JOIN 
-    `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos` AS e
+    EventosTratados AS e
     ON DATE(c.data_inicio) 
     BETWEEN e.data_inicial AND e.data_final
 WHERE 
@@ -193,9 +229,16 @@ Em seguida, será isolada cada edição anual dos eventos (ex: Carnaval 2022, Ca
 Depois, essas edições são agrupadas  por evento, somando-se todos os chamados e todos os dias de duração para extrair uma média diária única. 
 Por fim, as métricas consolidadas são cruzadas com a média geral.
 */
-
+WITH EventosTratados AS (--Constrói uma CTE para corrigir dados despadonizado da tabela 'datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos'
+    SELECT 
+        REPLACE(REPLACE(evento, 'é', 'e'), 'É', 'E') AS evento, 
+        CAST(data_inicial AS DATE) AS data_inicial, 
+        CAST(data_final AS DATE) AS data_final
+    FROM `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos`
+    WHERE data_inicial IS NOT NULL AND data_final IS NOT NULL
+),
 --Primeira etapa: cálculo da média diária geral dos 3 anos de reclamações de perturbação do sossego:
-WITH MediaGeral AS (
+MediaGeral AS (
     SELECT 
         COUNT(*) / 1096.0 AS media_diaria_geral -- Quantidade de dias entre 01/01/2022 e 31/12/2024: 1096
     FROM `datario.adm_central_atendimento_1746.chamado`
@@ -211,13 +254,12 @@ ChamadosPorEdicao AS (
         e.data_final,
         COUNT(c.id_chamado) AS total_chamados_edicao,
         DATE_DIFF(e.data_final, e.data_inicial, DAY) + 1 AS dias_edicao
-    FROM `datario.turismo_fluxo_visitantes.rede_hoteleira_ocupacao_eventos` AS e
-    INNER JOIN `datario.adm_central_atendimento_1746.chamado` AS c
-        ON DATE(c.data_inicio) 
-        BETWEEN e.data_inicial AND e.data_final
-    WHERE c.id_subtipo = '5071'
-      AND DATE(c.data_inicio) 
-      BETWEEN '2022-01-01' AND '2024-12-31'
+    -- #PUXANDO AGORA DA NOSSA CTE TRATADA EM VEZ DA TABELA ORIGINAL
+    FROM EventosTratados AS e
+    LEFT JOIN `datario.adm_central_atendimento_1746.chamado` AS c
+        ON DATE(c.data_inicio) BETWEEN e.data_inicial AND e.data_final
+        AND c.id_subtipo = '5071'
+        AND DATE(c.data_inicio) BETWEEN '2022-01-01' AND '2024-12-31'
     GROUP BY e.evento, e.data_inicial, e.data_final
 ),
 MediaConsolidada AS (
@@ -236,9 +278,11 @@ FROM MediaConsolidada AS mc
 CROSS JOIN MediaGeral AS mg
 ORDER BY mc.media_diaria_evento DESC;
 /* Resultado: A consulta indicou uma tabela com 3 linhas, uma linha para cada evento, evidenciando que a média diária geral de reclamações de perturbação ao sossego foi de 52,49 chamados por dia ao longo desses 3 anos. 
-Os eventos com maior média diária de reclamações superaram a média diária do período analisado. O Rock in Rio registrou uma média de 136,86 chamados por dia (mais de 2,5 vezes a média diária geral para esse subtipo de chamado no período observado). 
-O Carnaval registrou uma média de 63,75 chamados por dia, valor acima da média diária calculada ao longo dos 3 anos. Com isso, observamos o potencial que ambos os eventos (Rock in Rio e Carnaval) têm de impactar negativamente a vida dos cidadãos cariocas. 
-Além disso, o Réveillon, com uma média de 50,67 chamados por dia, foi o único com média diária ligeiramente abaixo da média global do período (52,49), ainda que permaneça em patamar elevado. 
-Portanto, recomenda-se a ampla divulgação do serviço de fiscalização de perturbação do sossego, por meio da Central de Atendimento 1746, antes e durante esses eventos, especialmente no Carnaval e no Rock in Rio. 
+Considerando a média diária conjunta de todas as ocorrências dos eventos solicitados, verificamos que apenas um evento superou a média diária do período analisado. O Rock in Rio registrou uma média de 136,86 chamados por dia (mais de 2,5 vezes a média diária geral para esse subtipo de chamado no período observado). 
+O Carnaval (com média de 28,33) e o Reveillon (25.33) registraram valor acima da média diária calculada ao longo dos 3 anos. Com isso, observamos o potencial que o Rock in Rio têm de impactar negativamente a vida dos cidadãos cariocas. 
+Portanto, recomenda-se a ampla divulgação do serviço de fiscalização de perturbação do sossego, por meio da Central de Atendimento 1746, antes e durante o Rock in Rio.
 Essa divulgação deve ser intensificada em mídias tradicionais, como rádio e TV aberta, e também em canais digitais e redes sociais, incluindo a página oficial da Prefeitura e a republicação por perfis institucionais de grande alcance, como o COR-Rio no Instagram, que possui elevado engajamento e frequente acompanhamento junto à população carioca. 
-De forma complementar, recomenda-se a suplementação e maior integração estratégica entre as equipes de fiscalização e as responsáveis pelo tratamento e encaminhamento dos chamados durante esses eventos, com o objetivo de ampliar a eficiência operacional, reduzir o tempo de resposta e qualificar o atendimento à população. */
+De forma complementar, recomenda-se a suplementação e maior integração estratégica entre as equipes de fiscalização e as responsáveis pelo tratamento e encaminhamento dos chamados durante esses eventos, com o objetivo de ampliar a eficiência operacional, reduzir o tempo de resposta e qualificar o atendimento à população. 
+De forma parelela, essa análise pode ser incrementada a partir do cruzamento das informações de geolocalização dos chamados de perturbação do sossego durante as edições do Rock in Rio para verificar se esses chamados, durante os dias do evento, se concentram em regiões ou bairros próximos a "Cidade do Rock" na Barra da Tijuca.
+Com a adição desse prisma analítico, poderíamos aumentar o nexo causal entre as edições do Rock in Rio e o aumento substancial de reclamações relacionadas a perturbação do sossego, incrementando assim a capacidade de planejamento e tomada de decisão da prefeitura para as edições futuras do Rock in Rio.
+*/
